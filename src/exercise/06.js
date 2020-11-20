@@ -26,6 +26,31 @@ function toggleReducer(state, {type, initialState}) {
   }
 }
 
+const useControlledInputWarnings = (onIsControlled, hasOnChange, readOnly) => {
+  const {current: onWasControlled} = React.useRef(onIsControlled)
+
+  React.useEffect(() => {
+    warning(
+      !(onIsControlled && !hasOnChange && !readOnly) && process.env.NODE_ENV === 'production',
+      'Passed "on" prop with no "onChange" to toggle. This will make it a read-only component. If this is on purpose, use readOnly, otherwise please provide an "onChange" handler'
+    )
+  }, [hasOnChange, onIsControlled, readOnly])
+
+  React.useEffect(() => {
+    warning(
+      !(onIsControlled && !onWasControlled) && process.env.NODE_ENV === 'production',
+      'Warning: A Toggle is changing an uncontrolled input of type undefined to be controlled. Input elements should not switch from uncontrolled to controlled (or vice versa). Decide between using a controlled or uncontrolled input element for the lifetime of the component.'
+    )
+  }, [onIsControlled, onWasControlled])
+
+  React.useEffect(() => {
+    warning(
+      !(!onIsControlled && onWasControlled) && process.env.NODE_ENV === 'production',
+      'Warning: A Toggle is changing an controlled input to be controlled. Toggle components should not switch from uncontrolled to controlled (or vice versa). Decide between using a controlled or uncontrolled Toggle component for the lifetime of the component.'
+    )
+  }, [onIsControlled, onWasControlled])
+}
+
 function useToggle({
   initialOn = false,
   reducer = toggleReducer,
@@ -39,29 +64,7 @@ function useToggle({
   const onIsControlled = controlledOn != null
   const on = onIsControlled ? controlledOn : state.on
 
-  const hasOnChange = Boolean(onChange)
-  const {current: onWasControlled} = React.useRef(onIsControlled)
-
-  React.useEffect(() => {
-    warning(
-      !(onIsControlled && !hasOnChange && !readOnly),
-      'Passed "on" prop with no "onChange" to toggle. This will make it a read-only component. If this is on purpose, use readOnly, otherwise please provide an "onChange" handler'
-    )
-  }, [hasOnChange, onIsControlled, readOnly])
-
-  React.useEffect(() => {
-    warning(
-      !(onIsControlled && !onWasControlled),
-      'Warning: A Toggle is changing an uncontrolled input of type undefined to be controlled. Input elements should not switch from uncontrolled to controlled (or vice versa). Decide between using a controlled or uncontrolled input element for the lifetime of the component.'
-    )
-  }, [onIsControlled, onWasControlled])
-
-  React.useEffect(() => {
-    warning(
-      onIsControlled && !onWasControlled,
-      'Warning: A Toggle is changing an controlled input to be controlled. Toggle components should not switch from uncontrolled to controlled (or vice versa). Decide between using a controlled or uncontrolled Toggle component for the lifetime of the component.'
-    )
-  }, [onIsControlled, onWasControlled])
+  useControlledInputWarnings(onIsControlled, Boolean(onChange), readOnly)
 
   const dispatchWithOnChange = (action) => {
     if (!onIsControlled) {
